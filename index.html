@@ -387,10 +387,56 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
         <div class="alert-body"><strong>CSV format</strong><p>Expected columns: <code>name, type, amount, category</code>. Category should be <code>income</code>, <code>expense</code>, or <code>savings</code>. For accounts: <code>name, type, balance</code> where type is bank/isa/lisa/pension/premium/credit/mortgage/loan.</p></div>
       </div>
       <div class="tab-bar">
-        <div class="tab active" onclick="switchImportTab('cashflow',this)">Cash flow items</div>
-        <div class="tab" onclick="switchImportTab('accounts',this)">Accounts</div>
+        <div class="tab active" onclick="switchImportTab('backup',this)">💾 Backup & restore</div>
+        <div class="tab" onclick="switchImportTab('cashflow',this)">Cash flow CSV</div>
+        <div class="tab" onclick="switchImportTab('accounts',this)">Accounts CSV</div>
       </div>
-      <div id="import-cashflow" class="tab-content active">
+
+      <!-- BACKUP / RESTORE TAB -->
+      <div id="import-backup" class="tab-content active">
+
+        <div class="alert alert-info" style="margin-bottom:20px;">
+          <div class="alert-icon">ℹ</div>
+          <div class="alert-body"><strong>Moving between devices</strong><p>Export a backup file on this device, then open FinanceOS on your other device and use "Restore from backup" to load it. All your accounts, cash flow, goals and pension settings will transfer.</p></div>
+        </div>
+
+        <!-- EXPORT -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="section-label">Export full backup</div>
+          <p style="font-size:14px;color:var(--text2);margin-bottom:16px;">Download a complete snapshot of all your data as a <code style="font-family:var(--mono);font-size:12px;background:var(--bg4);padding:2px 6px;border-radius:4px;">.json</code> file. Keep it somewhere safe — this is your only copy.</p>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--text2);">
+            <div id="backup-summary"></div>
+          </div>
+          <button class="btn btn-primary" onclick="exportBackup()">⬇ Download backup (.json)</button>
+        </div>
+
+        <!-- RESTORE -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="section-label">Restore from backup</div>
+          <p style="font-size:14px;color:var(--text2);margin-bottom:16px;">Upload a previously exported <code style="font-family:var(--mono);font-size:12px;background:var(--bg4);padding:2px 6px;border-radius:4px;">.json</code> backup file. This will replace all current data.</p>
+          <div class="csv-drop" id="jsonDrop" onclick="document.getElementById('jsonFileInput').click()" ondragover="handleDrag(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleDropJSON(event,this)">
+            <div style="font-size:36px;">↑</div>
+            <p>Click to upload or drag and drop your backup .json file</p>
+          </div>
+          <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="loadJSONFile(this)">
+          <div id="restore-preview"></div>
+        </div>
+
+        <!-- SHARE CODE -->
+        <div class="card">
+          <div class="section-label">Share via code</div>
+          <p style="font-size:14px;color:var(--text2);margin-bottom:16px;">Generate a compact text code you can copy-paste into any device — no file transfer needed. Useful on mobile.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="btn btn-ghost" onclick="generateCode()">Generate share code</button>
+            <button class="btn btn-ghost" onclick="showRestoreCode()">Restore from code</button>
+          </div>
+          <div id="share-code-area"></div>
+        </div>
+
+      </div>
+
+      <!-- CSV CASHFLOW TAB -->
+      <div id="import-cashflow" class="tab-content">
         <div class="csv-drop" id="csvDropCF" onclick="document.getElementById('csvFileCF').click()" ondragover="handleDrag(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleDropCF(event,this)">
           <div style="font-size:36px;">↑</div>
           <p>Click to upload or drag and drop a CSV file</p>
@@ -399,7 +445,15 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
         <input type="file" id="csvFileCF" accept=".csv" style="display:none" onchange="loadCSVCF(this)">
         <div id="csvPreviewCF"></div>
         <div id="csvImportBtnsCF"></div>
+        <div style="margin-top:24px;">
+          <div class="section-label">Export</div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="exportCSV('cashflow')">Export cash flow CSV</button>
+          </div>
+        </div>
       </div>
+
+      <!-- CSV ACCOUNTS TAB -->
       <div id="import-accounts" class="tab-content">
         <div class="csv-drop" id="csvDropAcc" onclick="document.getElementById('csvFileAcc').click()" ondragover="handleDrag(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleDropAcc(event,this)">
           <div style="font-size:36px;">↑</div>
@@ -409,12 +463,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
         <input type="file" id="csvFileAcc" accept=".csv" style="display:none" onchange="loadCSVAcc(this)">
         <div id="csvPreviewAcc"></div>
         <div id="csvImportBtnsAcc"></div>
-      </div>
-      <div style="margin-top:32px;">
-        <div class="section-label">Export your data</div>
-        <div class="btn-row">
-          <button class="btn btn-ghost" onclick="exportCSV('accounts')">Export accounts CSV</button>
-          <button class="btn btn-ghost" onclick="exportCSV('cashflow')">Export cash flow CSV</button>
+        <div style="margin-top:24px;">
+          <div class="section-label">Export</div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="exportCSV('accounts')">Export accounts CSV</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1100,6 +1153,133 @@ function switchImportTab(tab, el) {
   el.classList.add('active');
   document.querySelectorAll('#page-import .tab-content').forEach(t=>t.classList.remove('active'));
   document.getElementById('import-'+tab).classList.add('active');
+  if(tab==='backup') refreshBackupSummary();
+}
+
+// BACKUP / RESTORE
+function refreshBackupSummary() {
+  const el = document.getElementById('backup-summary');
+  if(!el) return;
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <span style="color:var(--text3);">Accounts</span><span style="font-family:var(--mono);">${DATA.accounts.length} items</span>
+    <span style="color:var(--text3);">Cash flow items</span><span style="font-family:var(--mono);">${DATA.cashflow.length} items</span>
+    <span style="color:var(--text3);">Savings goals</span><span style="font-family:var(--mono);">${DATA.goals.length} goals</span>
+    <span style="color:var(--text3);">Net worth</span><span style="font-family:var(--mono);">${fmtK(netWorth())}</span>
+    <span style="color:var(--text3);">Date</span><span style="font-family:var(--mono);">${new Date().toLocaleDateString('en-GB')}</span>
+  </div>`;
+}
+
+function exportBackup() {
+  const backup = { version:1, exportedAt:new Date().toISOString(), data:{ accounts:DATA.accounts, cashflow:DATA.cashflow, goals:DATA.goals, pension:DATA.pension } };
+  const filename = 'financeos-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
+  a.download = filename; a.click();
+}
+
+function handleDropJSON(e, el) {
+  e.preventDefault(); el.classList.remove('drag');
+  if(e.dataTransfer.files[0]) loadJSONFile({ files: e.dataTransfer.files });
+}
+
+function loadJSONFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      const d = backup.data || backup;
+      if(!d.accounts && !d.cashflow) throw new Error('Unrecognised format');
+      window._pendingRestore = backup;
+      const exportedAt = backup.exportedAt ? new Date(backup.exportedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Unknown';
+      document.getElementById('restore-preview').innerHTML = `
+        <div class="alert alert-warn" style="margin-top:14px;">
+          <div class="alert-icon">&#9888;</div>
+          <div class="alert-body"><strong>Ready to restore</strong><p>Backup from ${exportedAt} — ${(d.accounts||[]).length} accounts, ${(d.cashflow||[]).length} cash flow items, ${(d.goals||[]).length} goals. This will replace all current data.</p></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="confirmFileRestore">Restore this backup</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('restore-preview').innerHTML='';document.getElementById('jsonFileInput').value='';">Cancel</button>
+        </div>`;
+      document.getElementById('confirmFileRestore').onclick = () => confirmRestore(window._pendingRestore);
+    } catch(err) {
+      document.getElementById('restore-preview').innerHTML = `<div class="alert alert-danger" style="margin-top:14px;"><div class="alert-icon">&#10005;</div><div class="alert-body"><strong>Invalid file</strong><p>${err.message}</p></div></div>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function confirmRestore(backup) {
+  if(!confirm('This will replace ALL your current data with the backup. Continue?')) return;
+  const d = backup.data || backup;
+  DATA.accounts = d.accounts || [];
+  DATA.cashflow = d.cashflow || [];
+  DATA.goals = d.goals || [];
+  DATA.pension = d.pension || defaultPension();
+  saveData();
+  document.getElementById('restore-preview').innerHTML = `<div class="alert alert-ok" style="margin-top:14px;"><div class="alert-icon">&#10003;</div><div class="alert-body"><strong>Restored successfully</strong><p>Navigate to any section to verify your data.</p></div></div>`;
+  document.getElementById('jsonFileInput').value='';
+  refreshBackupSummary();
+}
+
+function generateCode() {
+  const backup = { version:1, exportedAt:new Date().toISOString(), data:{ accounts:DATA.accounts, cashflow:DATA.cashflow, goals:DATA.goals, pension:DATA.pension } };
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify(backup))));
+  const area = document.getElementById('share-code-area');
+  area.innerHTML = `<div style="margin-top:4px;">
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;font-family:var(--mono);font-size:11px;color:var(--text2);word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.6;" id="codeDisplay">${code}</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="copyBtn" onclick="doCopy()">Copy code</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('share-code-area').innerHTML=''">Clear</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:6px;">Paste this into "Restore from code" on any other device.</p>
+  </div>`;
+  window._shareCode = code;
+}
+
+function doCopy() {
+  navigator.clipboard.writeText(window._shareCode||'').then(()=>{
+    const b = document.getElementById('copyBtn');
+    if(b) { b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy code',2000); }
+  }).catch(()=>{
+    document.execCommand && document.execCommand('copy');
+  });
+}
+
+function showRestoreCode() {
+  document.getElementById('share-code-area').innerHTML = `<div style="margin-top:4px;">
+    <label class="form-label">Paste your share code:</label>
+    <textarea class="form-input" id="pasteCodeArea" rows="4" style="resize:vertical;font-family:var(--mono);font-size:11px;" placeholder="Paste code here..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="restoreFromCode()">Restore</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('share-code-area').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function restoreFromCode() {
+  const code = (document.getElementById('pasteCodeArea')||{}).value||'';
+  if(!code.trim()) return;
+  try {
+    const json = decodeURIComponent(escape(atob(code.trim())));
+    const backup = JSON.parse(json);
+    window._pendingRestore = backup;
+    const d = backup.data || backup;
+    const exportedAt = backup.exportedAt ? new Date(backup.exportedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Unknown';
+    document.getElementById('share-code-area').innerHTML = `
+      <div class="alert alert-warn" style="margin-top:10px;">
+        <div class="alert-icon">&#9888;</div>
+        <div class="alert-body"><strong>Ready to restore</strong><p>Backup from ${exportedAt} — ${(d.accounts||[]).length} accounts, ${(d.cashflow||[]).length} cash flow items.</p></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="confirmCodeRestore">Restore this backup</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('share-code-area').innerHTML=''">Cancel</button>
+      </div>`;
+    document.getElementById('confirmCodeRestore').onclick = () => confirmRestore(window._pendingRestore);
+  } catch(err) {
+    document.getElementById('share-code-area').innerHTML = `<div class="alert alert-danger" style="margin-top:10px;"><div class="alert-icon">&#10005;</div><div class="alert-body"><strong>Invalid code</strong><p>Make sure you copied the full code.</p></div></div>`;
+  }
 }
 
 // ─── MODALS ────────────────────────────────────────────────────────────────────
