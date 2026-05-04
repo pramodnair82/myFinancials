@@ -210,6 +210,47 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+/* MODE TOGGLE */
+.mode-bar { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.mode-toggle { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 2px; }
+.mode-btn { flex: 1; padding: 5px 0; text-align: center; font-size: 12px; font-weight: 600; border: none; border-radius: 18px; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--text3); font-family: var(--font); }
+.mode-btn.offline-active { background: var(--bg); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.mode-btn.online-active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(79,142,247,0.4); }
+.mode-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.mode-dot.live { background: #6fe4b4; animation: pulse 2s infinite; }
+.mode-dot.off { background: var(--text3); }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.35} }
+.nav-section { margin-top: 8px; }
+.nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 8px 14px 4px; display: block; }
+.online-nav { display: none; }
+/* INSTITUTION PICKER */
+.inst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 14px; padding-right: 4px; }
+.inst-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.inst-card:hover,.inst-card.selected { border-color: var(--accent); background: rgba(79,142,247,0.08); }
+.inst-card img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; margin-bottom: 5px; display: block; margin-left: auto; margin-right: auto; }
+.inst-card .inst-name { font-size: 11px; color: var(--text2); line-height: 1.3; }
+.inst-search { width: 100%; padding: 8px 12px; font-size: 13px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font); outline: none; margin-bottom: 12px; }
+.inst-search:focus { border-color: var(--accent); }
+/* ONLINE CONNECTION CARDS */
+.conn-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 10px; }
+.conn-header { display: flex; align-items: center; gap: 12px; }
+.conn-logo { width: 36px; height: 36px; border-radius: 10px; object-fit: contain; background: var(--bg3); padding: 4px; flex-shrink: 0; }
+.conn-info { flex: 1; }
+.conn-name { font-size: 15px; font-weight: 500; }
+.conn-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.conn-accounts { margin-top: 12px; }
+.conn-acc-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.conn-acc-row .name { color: var(--text2); }
+.conn-acc-row .bal { font-family: var(--mono); font-weight: 500; }
+.sync-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+.sync-ok { background: rgba(111,228,180,0.1); color: #6fe4b4; }
+.sync-err { background: rgba(247,111,111,0.1); color: #f76f6f; }
+.sync-loading { color: var(--text3); }
+.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to{ transform: rotate(360deg); } }
+.backend-url-bar { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.backend-url-bar input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--mono); font-size: 13px; }
+.backend-url-bar label { font-size: 12px; color: var(--text3); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -221,17 +262,33 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
       <div class="logo-title">FinanceOS</div>
       <div class="logo-sub">Personal dashboard</div>
     </div>
+    <div class="mode-bar">
+      <div class="mode-toggle">
+        <button class="mode-btn offline-active" id="modeOfflineBtn" onclick="setMode('offline')"><span class="mode-dot off"></span>Offline</button>
+        <button class="mode-btn" id="modeOnlineBtn" onclick="setMode('online')"><span class="mode-dot live"></span>Online</button>
+      </div>
+    </div>
     <nav class="nav">
-      <button class="nav-item active" onclick="showPage('overview')"><span class="icon">◈</span><span>Overview</span></button>
-      <button class="nav-item" onclick="showPage('accounts')"><span class="icon">⬡</span><span>Accounts</span></button>
-      <button class="nav-item" onclick="showPage('cashflow')"><span class="icon">⇄</span><span>Cash flow</span></button>
-      <button class="nav-item" onclick="showPage('goals')"><span class="icon">◎</span><span>Goals</span></button>
-      <button class="nav-item" onclick="showPage('debt')"><span class="icon">⊘</span><span>Debt tracker</span></button>
-      <button class="nav-item" onclick="showPage('pension')"><span class="icon">◑</span><span>Pension</span></button>
-      <button class="nav-item" onclick="showPage('import')"><span class="icon">↑</span><span>Import CSV</span></button>
+      <div class="nav-section">
+        <span class="nav-section-label">Dashboard</span>
+        <button class="nav-item active" onclick="showPage('overview')"><span class="icon">◈</span><span>Overview</span></button>
+        <button class="nav-item" onclick="showPage('accounts')"><span class="icon">⬡</span><span>Accounts</span></button>
+        <button class="nav-item" onclick="showPage('cashflow')"><span class="icon">⇄</span><span>Cash flow</span></button>
+        <button class="nav-item" onclick="showPage('goals')"><span class="icon">◎</span><span>Goals</span></button>
+        <button class="nav-item" onclick="showPage('debt')"><span class="icon">⊘</span><span>Debt tracker</span></button>
+        <button class="nav-item" onclick="showPage('pension')"><span class="icon">◑</span><span>Pension</span></button>
+      </div>
+      <div class="nav-section online-nav" id="onlineNavSection">
+        <span class="nav-section-label">Online banking</span>
+        <button class="nav-item" onclick="showPage('connections')"><span class="icon">⟳</span><span>Connections</span></button>
+      </div>
+      <div class="nav-section">
+        <span class="nav-section-label">Data</span>
+        <button class="nav-item" onclick="showPage('import')"><span class="icon">↑</span><span>Backup / Import</span></button>
+      </div>
     </nav>
     <div class="sidebar-footer">
-      <p>Data stored locally in your browser</p>
+      <p id="sidebar-mode-label">📴 Offline mode</p>
     </div>
   </aside>
 
@@ -376,6 +433,51 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
       </div>
     </div>
 
+    <!-- CONNECTIONS (Online mode) -->
+    <div class="page" id="page-connections">
+      <div class="page-header">
+        <h1 class="page-title">Bank connections</h1>
+        <p class="page-sub">Connect your accounts via Open Banking (GoCardless — free)</p>
+      </div>
+
+      <!-- Backend URL config -->
+      <div class="backend-url-bar">
+        <label>Backend URL:</label>
+        <input id="backendUrlInput" type="url" placeholder="https://your-app.vercel.app" oninput="saveBackendUrl(this.value)">
+        <button class="btn btn-ghost btn-sm" onclick="testBackend()">Test</button>
+        <span id="backendStatus" style="font-size:12px;color:var(--text3);"></span>
+      </div>
+
+      <div id="conn-alerts"></div>
+
+      <div class="grid grid-4" id="online-metrics" style="margin-bottom:24px;"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="section-label" style="margin:0;">Connected banks</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncAllConnections()">⟳ Sync all</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('connectBankModal')">+ Connect bank</button>
+        </div>
+      </div>
+      <div id="connections-list"></div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="pushOnlineToOffline()">⬇ Push balances to offline mode</button>
+        <span style="font-size:13px;color:var(--text3);">Copies all live balances into your offline data</span>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="section-label">How it works</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.8;">
+          <p>1. Deploy the <strong style="color:var(--text);">backend</strong> to Vercel (see setup guide) and paste the URL above.</p>
+          <p>2. Click <strong style="color:var(--text);">+ Connect bank</strong>, pick your bank from the list, and you'll be redirected to your bank's secure consent page.</p>
+          <p>3. After consenting, you'll be brought back here and your live balances will load automatically.</p>
+          <p>4. Use <strong style="color:var(--text);">⟳ Sync all</strong> any time to refresh balances. GoCardless fetches from your bank in real-time.</p>
+          <p style="margin-top:8px;font-size:12px;color:var(--text3);">Bank connections expire after 90 days and will need re-authorising. GoCardless is free for personal use.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- IMPORT CSV -->
     <div class="page" id="page-import">
       <div class="page-header">
@@ -476,6 +578,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 </div>
 
 <!-- MODALS -->
+<!-- Connect Bank Modal -->
+<div class="modal-overlay" id="connectBankModal">
+  <div class="modal-box" style="width:500px;">
+    <div class="modal-title">Connect a bank</div>
+    <input class="inst-search" id="instSearch" placeholder="Search banks..." oninput="filterInstitutions(this.value)">
+    <div id="inst-loading" style="text-align:center;padding:20px;color:var(--text3);font-size:14px;">Loading UK banks…</div>
+    <div class="inst-grid" id="inst-grid" style="display:none;"></div>
+    <div id="inst-selected-bar" style="display:none;padding:10px 14px;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--text2);margin-bottom:12px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('connectBankModal')">Cancel</button>
+      <button class="btn btn-primary" id="connectBankBtn" disabled onclick="startBankConnection()">Connect →</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Account -->
 <div class="modal-overlay" id="addAccountModal">
   <div class="modal-box">
@@ -684,7 +801,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b=>{ if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active'); });
-  const renders = { overview:renderOverview, accounts:renderAccounts, cashflow:renderCashflow, goals:renderGoals, debt:renderDebt, pension:renderPension, import:()=>{} };
+  const renders = { overview:renderOverview, accounts:renderAccounts, cashflow:renderCashflow, goals:renderGoals, debt:renderDebt, pension:renderPension, connections:renderConnections, import:()=>{} };
   if(renders[name]) renders[name]();
 }
 
@@ -1359,8 +1476,310 @@ document.getElementById('newAccType').addEventListener('change', toggleDebtField
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-renderOverview();
+// ─── MODE SYSTEM ──────────────────────────────────────────────────────────────
+let appMode = localStorage.getItem('financeOS_mode') || 'offline';
+
+function setMode(mode) {
+  appMode = mode;
+  localStorage.setItem('financeOS_mode', mode);
+  applyMode();
+  if(mode === 'online') showPage('connections');
+  else showPage('overview');
+}
+
+function applyMode() {
+  const isOnline = appMode === 'online';
+  document.getElementById('modeOfflineBtn').className = 'mode-btn ' + (isOnline ? '' : 'offline-active');
+  document.getElementById('modeOnlineBtn').className = 'mode-btn ' + (isOnline ? 'online-active' : '');
+  document.getElementById('onlineNavSection').style.display = isOnline ? 'block' : 'none';
+  document.getElementById('sidebar-mode-label').textContent = isOnline ? '🟢 Online — live balances' : '📴 Offline mode';
+}
+
+// ─── BACKEND URL ──────────────────────────────────────────────────────────────
+function getBackendUrl() { return (localStorage.getItem('financeOS_backendUrl') || '').replace(/\/$/, ''); }
+function saveBackendUrl(url) { localStorage.setItem('financeOS_backendUrl', url.trim()); }
+function apiUrl(path) { return getBackendUrl() + path; }
+
+async function testBackend() {
+  const el = document.getElementById('backendStatus');
+  const url = getBackendUrl();
+  if(!url) { el.textContent = '⚠ No URL set'; el.style.color = 'var(--warning)'; return; }
+  el.textContent = 'Testing…';
+  try {
+    const r = await fetch(apiUrl('/api/institutions'), { signal: AbortSignal.timeout(5000) });
+    if(r.ok) { el.textContent = '✓ Connected'; el.style.color = 'var(--success)'; }
+    else { el.textContent = `✗ ${r.status}`; el.style.color = 'var(--danger)'; }
+  } catch(e) { el.textContent = '✗ Unreachable'; el.style.color = 'var(--danger)'; }
+}
+
+// ─── CONNECTIONS STORE ────────────────────────────────────────────────────────
+// connections: [{ requisition_id, institution_id, institution_name, institution_logo, connected_at, accounts:[{id,name,iban,balance,currency,last_synced}] }]
+function loadConnections() {
+  try { return JSON.parse(localStorage.getItem('financeOS_connections') || '[]'); } catch{ return []; }
+}
+function saveConnections(conns) { localStorage.setItem('financeOS_connections', JSON.stringify(conns)); }
+let CONNECTIONS = loadConnections();
+
+// ─── CONNECTIONS PAGE ─────────────────────────────────────────────────────────
+function renderConnections() {
+  // Restore backend URL input
+  const urlInput = document.getElementById('backendUrlInput');
+  if(urlInput) urlInput.value = getBackendUrl();
+
+  // Alerts
+  const alertEl = document.getElementById('conn-alerts');
+  if(alertEl) {
+    const url = getBackendUrl();
+    alertEl.innerHTML = url
+      ? ''
+      : `<div class="alert alert-warn" style="margin-bottom:16px;"><div class="alert-icon">⚠</div><div class="alert-body"><strong>Backend not configured</strong><p>Enter your Vercel backend URL above, then click Test. See the Setup Guide for instructions.</p></div></div>`;
+  }
+
+  // Metrics
+  const allAccounts = CONNECTIONS.flatMap(c => c.accounts || []);
+  const totalLive = allAccounts.filter(a=>a.balance!==null).reduce((s,a)=>s+(a.balance||0), 0);
+  const metricsEl = document.getElementById('online-metrics');
+  if(metricsEl) metricsEl.innerHTML = `
+    <div class="metric"><div class="metric-label">Connected banks</div><div class="metric-val">${CONNECTIONS.length}</div></div>
+    <div class="metric"><div class="metric-label">Live accounts</div><div class="metric-val">${allAccounts.length}</div></div>
+    <div class="metric"><div class="metric-label">Total live balance</div><div class="metric-val ${totalLive>=0?'pos':'neg'}">${fmtK(totalLive)}</div></div>
+    <div class="metric"><div class="metric-label">Last synced</div><div class="metric-val" style="font-size:14px;">${allAccounts.length ? timeAgo(Math.max(...allAccounts.filter(a=>a.last_synced).map(a=>new Date(a.last_synced).getTime()))) : '—'}</div></div>
+  `;
+
+  // Connection cards
+  const listEl = document.getElementById('connections-list');
+  if(!listEl) return;
+  if(!CONNECTIONS.length) {
+    listEl.innerHTML = `<div class="card" style="text-align:center;padding:32px;color:var(--text3);">
+      <div style="font-size:32px;margin-bottom:10px;">🏦</div>
+      <p>No banks connected yet. Click <strong style="color:var(--text);">+ Connect bank</strong> to get started.</p>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = CONNECTIONS.map((conn, ci) => `
+    <div class="conn-card">
+      <div class="conn-header">
+        <img class="conn-logo" src="${conn.institution_logo||''}" alt="${conn.institution_name}" onerror="this.style.display='none'">
+        <div class="conn-info">
+          <div class="conn-name">${conn.institution_name}</div>
+          <div class="conn-meta">Connected ${new Date(conn.connected_at).toLocaleDateString('en-GB')} · ${(conn.accounts||[]).length} account${(conn.accounts||[]).length!==1?'s':''}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="syncConnection(${ci})">⟳ Refresh</button>
+          <button class="btn btn-ghost btn-sm" onclick="removeConnection(${ci})" style="color:var(--danger);">✕</button>
+        </div>
+      </div>
+      <div class="conn-accounts" id="conn-accs-${ci}">
+        ${(conn.accounts||[]).length === 0
+          ? `<div style="padding:10px 0;font-size:13px;color:var(--text3);">No accounts loaded yet — click Refresh</div>`
+          : (conn.accounts||[]).map(a => `
+            <div class="conn-acc-row">
+              <span class="name">${a.name}${a.iban ? ' · <span style="font-family:var(--mono);font-size:11px;">' + maskIban(a.iban) + '</span>' : ''}</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="bal ${a.balance!==null?(a.balance>=0?'amount-pos':'amount-neg'):''}">${a.balance!==null?(a.balance<0?'-':'')+fmt(Math.abs(a.balance)):'—'}</span>
+                ${a.last_synced ? `<span style="font-size:11px;color:var(--text3);">${timeAgo(new Date(a.last_synced).getTime())}</span>` : ''}
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function maskIban(iban) { return iban.slice(0,4) + '···' + iban.slice(-4); }
+
+function timeAgo(ts) {
+  const s = Math.round((Date.now()-ts)/1000);
+  if(s < 60) return 'just now';
+  if(s < 3600) return Math.floor(s/60) + 'm ago';
+  if(s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+async function syncConnection(ci) {
+  const conn = CONNECTIONS[ci];
+  if(!conn) return;
+  const btn = document.querySelector(`#conn-accs-${ci}`)?.closest('.conn-card')?.querySelector('.btn');
+  if(btn) btn.textContent = '⟳ Syncing…';
+  try {
+    const r = await fetch(apiUrl(`/api/accounts?requisition_id=${conn.requisition_id}`));
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if(data.accounts && data.accounts.length) {
+      conn.accounts = data.accounts.map(a => ({ ...a, last_synced: new Date().toISOString() }));
+      CONNECTIONS[ci] = conn;
+      saveConnections(CONNECTIONS);
+    }
+  } catch(e) {
+    alert('Sync failed: ' + e.message + '\n\nMake sure your backend URL is set correctly.');
+  }
+  renderConnections();
+}
+
+async function syncAllConnections() {
+  for(let i=0; i<CONNECTIONS.length; i++) await syncConnection(i);
+}
+
+function removeConnection(ci) {
+  if(!confirm('Remove this bank connection? You can reconnect at any time.')) return;
+  CONNECTIONS.splice(ci, 1);
+  saveConnections(CONNECTIONS);
+  renderConnections();
+}
+
+function pushOnlineToOffline() {
+  const all = CONNECTIONS.flatMap(c => c.accounts || []);
+  if(!all.length) { alert('No live balances to push. Sync your connections first.'); return; }
+  let updated = 0;
+  all.forEach(oa => {
+    if(oa.balance === null) return;
+    // Try to match by IBAN or name
+    const match = DATA.accounts.find(a =>
+      (oa.iban && a.iban && a.iban === oa.iban) ||
+      a.name.toLowerCase().includes(oa.name.toLowerCase().slice(0,8)) ||
+      oa.name.toLowerCase().includes(a.name.toLowerCase().slice(0,8))
+    );
+    if(match) { match.balance = oa.balance; updated++; }
+    else {
+      // Auto-create a new account if not found
+      DATA.accounts.push({ id: nextId++, name: oa.name, type: 'bank', balance: oa.balance, rate: 0, minPayment: 0, iban: oa.iban });
+      updated++;
+    }
+  });
+  saveData();
+  alert(`✓ Pushed ${updated} account balance${updated!==1?'s':''} to offline mode.`);
+}
+
+// ─── INSTITUTION PICKER ───────────────────────────────────────────────────────
+let allInstitutions = [];
+let selectedInstitution = null;
+
+async function loadInstitutions() {
+  document.getElementById('inst-loading').style.display = 'block';
+  document.getElementById('inst-grid').style.display = 'none';
+  try {
+    const r = await fetch(apiUrl('/api/institutions'));
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    allInstitutions = await r.json();
+    renderInstitutionGrid(allInstitutions);
+  } catch(e) {
+    document.getElementById('inst-loading').textContent = '✗ Could not load banks. Check your backend URL. ' + e.message;
+  }
+}
+
+function renderInstitutionGrid(list) {
+  document.getElementById('inst-loading').style.display = 'none';
+  const grid = document.getElementById('inst-grid');
+  grid.style.display = 'grid';
+  grid.innerHTML = list.map(inst => `
+    <div class="inst-card" data-id="${inst.id}" onclick="selectInstitution('${inst.id}','${inst.name.replace(/'/g,"\\'")}','${inst.logo||''}')">
+      ${inst.logo ? `<img src="${inst.logo}" alt="${inst.name}" onerror="this.style.display='none'">` : `<div style="width:32px;height:32px;background:var(--bg4);border-radius:6px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:16px;">🏦</div>`}
+      <div class="inst-name">${inst.name}</div>
+    </div>`).join('');
+}
+
+function filterInstitutions(q) {
+  const filtered = q ? allInstitutions.filter(i => i.name.toLowerCase().includes(q.toLowerCase())) : allInstitutions;
+  renderInstitutionGrid(filtered);
+}
+
+function selectInstitution(id, name, logo) {
+  selectedInstitution = { id, name, logo };
+  document.querySelectorAll('.inst-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+  const bar = document.getElementById('inst-selected-bar');
+  bar.style.display = 'block';
+  bar.innerHTML = `<strong style="color:var(--text);">${name}</strong> selected. Click Connect to open their secure consent page.`;
+  document.getElementById('connectBankBtn').disabled = false;
+}
+
+async function startBankConnection() {
+  if(!selectedInstitution) return;
+  const btn = document.getElementById('connectBankBtn');
+  btn.textContent = 'Connecting…'; btn.disabled = true;
+  try {
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const r = await fetch(apiUrl('/api/connect'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ institution_id: selectedInstitution.id, redirect_url: redirectUrl }),
+    });
+    if(!r.ok) throw new Error(`Backend error ${r.status}`);
+    const data = await r.json();
+    // Store pending connection so we can complete it on return
+    localStorage.setItem('financeOS_pending', JSON.stringify({
+      requisition_id: data.requisition_id,
+      institution_id: selectedInstitution.id,
+      institution_name: selectedInstitution.name,
+      institution_logo: selectedInstitution.logo,
+    }));
+    // Redirect to bank consent page
+    window.location.href = data.link;
+  } catch(e) {
+    alert('Connection failed: ' + e.message);
+    btn.textContent = 'Connect →'; btn.disabled = false;
+  }
+}
+
+// Check if we just returned from GoCardless consent flow
+async function checkGoCardlessReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref'); // GoCardless sends ?ref={requisition_id}
+  const pending = JSON.parse(localStorage.getItem('financeOS_pending') || 'null');
+  if(!ref || !pending) return;
+
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+  localStorage.removeItem('financeOS_pending');
+
+  // Switch to online mode automatically
+  appMode = 'online';
+  localStorage.setItem('financeOS_mode', 'online');
+  applyMode();
+  showPage('connections');
+
+  // Fetch accounts for this requisition
+  try {
+    const r = await fetch(apiUrl(`/api/accounts?requisition_id=${ref}`));
+    const data = r.ok ? await r.json() : { accounts: [] };
+    const conn = {
+      requisition_id: ref,
+      institution_id: pending.institution_id,
+      institution_name: pending.institution_name,
+      institution_logo: pending.institution_logo,
+      connected_at: new Date().toISOString(),
+      accounts: (data.accounts || []).map(a => ({ ...a, last_synced: new Date().toISOString() })),
+    };
+    CONNECTIONS.push(conn);
+    saveConnections(CONNECTIONS);
+    renderConnections();
+    if(conn.accounts.length) {
+      document.getElementById('conn-alerts').innerHTML = `<div class="alert alert-ok" style="margin-bottom:16px;"><div class="alert-icon">✓</div><div class="alert-body"><strong>${pending.institution_name} connected!</strong><p>${conn.accounts.length} account${conn.accounts.length!==1?'s':''} loaded with live balances.</p></div></div>`;
+    } else {
+      document.getElementById('conn-alerts').innerHTML = `<div class="alert alert-warn" style="margin-bottom:16px;"><div class="alert-icon">⚠</div><div class="alert-body"><strong>Connected — balances loading</strong><p>Your bank may take a moment to share account data. Click ⟳ Refresh in a few seconds.</p></div></div>`;
+    }
+  } catch(e) {
+    document.getElementById('conn-alerts').innerHTML = `<div class="alert alert-danger" style="margin-bottom:16px;"><div class="alert-icon">✕</div><div class="alert-body"><strong>Error loading accounts</strong><p>${e.message}</p></div></div>`;
+  }
+}
+
+// Override showPage to load institutions when opening connect modal
+const _origOpenModal = openModal;
+function openModal(id) {
+  _origOpenModal(id);
+  if(id === 'connectBankModal') {
+    selectedInstitution = null;
+    document.getElementById('connectBankBtn').disabled = true;
+    document.getElementById('instSearch').value = '';
+    document.getElementById('inst-selected-bar').style.display = 'none';
+    if(!allInstitutions.length) loadInstitutions();
+    else renderInstitutionGrid(allInstitutions);
+  }
+}
+
+// ─── MODE INIT ────────────────────────────────────────────────────────────────
+applyMode();
+checkGoCardlessReturn();
+
+
 </script>
 </body>
 </html>
