@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinanceOS — Personal Finance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0e1117;
+  --bg2: #161b27;
+  --bg3: #1e2535;
+  --bg4: #252d3f;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f2f8;
+  --text2: #8b92a8;
+  --text3: #5a6275;
+  --accent: #4f8ef7;
+  --accent2: #6fe4b4;
+  --accent3: #f7c94f;
+  --danger: #f76f6f;
+  --success: #6fe4b4;
+  --warning: #f7c94f;
+  --font: 'Figtree', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+/* LAYOUT */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; padding: 0; }
+.logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+.logo-title { font-family: var(--serif); font-size: 22px; color: var(--text); letter-spacing: -0.5px; }
+.logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+.nav { padding: 16px 10px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); color: var(--text2); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(79,142,247,0.15); color: var(--accent); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+.sidebar-footer p { font-size: 12px; color: var(--text3); }
+.main { margin-left: 220px; flex: 1; padding: 32px 40px; max-width: 1100px; }
+
+/* PAGES */
+.page { display: none; } .page.active { display: block; }
+.page-header { margin-bottom: 28px; }
+.page-title { font-family: var(--serif); font-size: 32px; color: var(--text); }
+.page-sub { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+.card-sm { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; }
+.grid { display: grid; gap: 16px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) { .sidebar { width: 60px; } .sidebar .logo-title, .sidebar .logo-sub, .nav-item span { display: none; } .main { margin-left: 60px; padding: 20px; } .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-3 { grid-template-columns: 1fr 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+/* METRIC */
+.metric { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.metric-label { font-size: 12px; color: var(--text2); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+.metric-val { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--text); }
+.metric-sub { font-size: 12px; color: var(--text3); margin-top: 6px; }
+.metric-val.pos { color: var(--success); }
+.metric-val.neg { color: var(--danger); }
+.metric-val.warn { color: var(--warning); }
+
+/* SECTION */
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; margin-top: 28px; }
+.section-label:first-child { margin-top: 0; }
+
+/* ACCOUNT ROWS */
+.account-row { display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s; margin-bottom: 6px; }
+.account-row:hover { border-color: var(--border2); }
+.account-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.account-icon.asset-ic { background: rgba(79,142,247,0.12); }
+.account-icon.debt-ic { background: rgba(247,111,111,0.12); }
+.account-info { flex: 1; min-width: 0; }
+.account-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.account-type { font-size: 12px; color: var(--text3); }
+.account-amount { font-family: var(--mono); font-size: 15px; font-weight: 500; }
+.amount-pos { color: var(--text); }
+.amount-neg { color: var(--danger); }
+.account-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; font-weight: 500; }
+.badge-warn { background: rgba(247,201,79,0.15); color: var(--warning); }
+.badge-ok { background: rgba(111,228,180,0.1); color: var(--success); }
+.badge-info { background: rgba(79,142,247,0.12); color: var(--accent); }
+
+/* CASHFLOW ROW */
+.cf-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.cf-row:last-child { border-bottom: none; }
+.cf-row .name { color: var(--text2); }
+.cf-tag { font-family: var(--mono); font-size: 13px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.cf-tag.income { background: rgba(111,228,180,0.1); color: var(--success); }
+.cf-tag.expense { background: rgba(247,111,111,0.1); color: var(--danger); }
+.cf-tag.savings { background: rgba(79,142,247,0.1); color: var(--accent); }
+.cf-delete { background: none; border: none; color: var(--text3); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 14px; }
+.cf-delete:hover { color: var(--danger); background: rgba(247,111,111,0.1); }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; font-family: var(--font); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.85; }
+.btn-ghost { background: transparent; color: var(--text2); border-color: var(--border2); }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-danger { background: transparent; color: var(--danger); border-color: rgba(247,111,111,0.3); }
+.btn-danger:hover { background: rgba(247,111,111,0.1); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+/* CHART WRAP */
+.chart-wrap { position: relative; width: 100%; margin: 4px 0 8px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ISA ALERT */
+.alert { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 12px; font-size: 14px; }
+.alert-warn { background: rgba(247,201,79,0.08); border: 1px solid rgba(247,201,79,0.2); color: var(--warning); }
+.alert-danger { background: rgba(247,111,111,0.08); border: 1px solid rgba(247,111,111,0.2); color: var(--danger); }
+.alert-ok { background: rgba(111,228,180,0.08); border: 1px solid rgba(111,228,180,0.2); color: var(--success); }
+.alert-info { background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.2); color: var(--accent); }
+.alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.alert-body strong { display: block; font-weight: 600; margin-bottom: 2px; }
+.alert-body p { color: var(--text2); font-size: 13px; margin: 0; }
+
+/* PROGRESS BAR */
+.progress-wrap { margin: 8px 0 4px; }
+.progress-bar { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3); margin-top: 5px; }
+
+/* GOAL CARD */
+.goal-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 10px; }
+.goal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.goal-name { font-size: 15px; font-weight: 500; }
+.goal-target { font-family: var(--mono); font-size: 13px; color: var(--text2); }
+.goal-actions { display: flex; gap: 6px; }
+
+/* DEBT PAYOFF */
+.debt-method-toggle { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 24px; padding: 3px; margin-bottom: 20px; width: fit-content; }
+.debt-method-btn { padding: 6px 18px; border-radius: 22px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--text2); transition: all 0.15s; }
+.debt-method-btn.active { background: var(--accent); color: #fff; }
+.debt-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 10px; }
+.debt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.debt-title { font-size: 15px; font-weight: 500; }
+.debt-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.debt-stat { text-align: center; }
+.debt-stat .val { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--text); }
+.debt-stat .lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.payoff-order { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.payoff-step { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg3); border-radius: var(--radius-sm); font-size: 14px; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.step-info { flex: 1; }
+.step-name { font-weight: 500; }
+.step-detail { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.step-months { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 28px; width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.modal-title { font-family: var(--serif); font-size: 22px; margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-select { width: 100%; padding: 10px 13px; font-size: 14px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font); outline: none; transition: border-color 0.15s; }
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
+.form-select option { background: var(--bg2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* PENSION SLIDERS */
+.slider-block { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.slider-block:last-child { border-bottom: none; }
+.slider-label { font-size: 13px; color: var(--text2); min-width: 190px; }
+.slider-block input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; background: var(--bg4); border-radius: 2px; outline: none; cursor: pointer; }
+.slider-block input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--bg2); }
+.slider-val { font-family: var(--mono); font-size: 14px; font-weight: 500; min-width: 70px; text-align: right; color: var(--accent); }
+
+/* PENSION STATS */
+.pension-stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.pension-stat-row:last-child { border-bottom: none; }
+.pension-stat-row .lbl { color: var(--text2); }
+.pension-stat-row .val { font-family: var(--mono); font-weight: 500; color: var(--text); }
+.pension-stat-row .val.highlight { color: var(--accent2); font-size: 18px; }
+
+/* CSV UPLOAD */
+.csv-drop { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.csv-drop:hover, .csv-drop.drag { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+.csv-drop p { color: var(--text2); font-size: 14px; margin-top: 8px; }
+.csv-preview { max-height: 200px; overflow-y: auto; margin-top: 14px; }
+.csv-preview table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.csv-preview th { background: var(--bg4); padding: 6px 8px; color: var(--text2); text-align: left; position: sticky; top: 0; }
+.csv-preview td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+
+/* TAB BAR */
+.tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.tab { padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; } .tab-content.active { display: block; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">FinanceOS</div>
+      <div class="logo-sub">Personal dashboard</div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" onclick="showPage('overview')"><span class="icon">◈</span><span>Overview</span></button>
+      <button class="nav-item" onclick="showPage('accounts')"><span class="icon">⬡</span><span>Accounts</span></button>
+      <button class="nav-item" onclick="showPage('cashflow')"><span class="icon">⇄</span><span>Cash flow</span></button>
+      <button class="nav-item" onclick="showPage('goals')"><span class="icon">◎</span><span>Goals</span></button>
+      <button class="nav-item" onclick="showPage('debt')"><span class="icon">⊘</span><span>Debt tracker</span></button>
+      <button class="nav-item" onclick="showPage('pension')"><span class="icon">◑</span><span>Pension</span></button>
+      <button class="nav-item" onclick="showPage('import')"><span class="icon">↑</span><span>Import CSV</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <p>Data stored locally in your browser</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <h1 class="page-title">Overview</h1>
+        <p class="page-sub" id="overview-date"></p>
+      </div>
+      <div id="isa-alerts"></div>
+      <div class="grid grid-4" id="overview-metrics" style="margin-bottom:24px;"></div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="section-label">Net worth trend</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Net worth</div>
+          </div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="netWorthChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Asset breakdown</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="assetDonutChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="section-label">Monthly cash flow</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#6fe4b4"></div>Income</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f76f6f"></div>Expenses</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Savings</div>
+        </div>
+        <div class="chart-wrap" style="height:180px;"><canvas id="cfOverviewChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="page" id="page-accounts">
+      <div class="page-header">
+        <h1 class="page-title">Accounts</h1>
+        <p class="page-sub">All your financial accounts in one place</p>
+      </div>
+      <div id="isa-alerts-accounts"></div>
+      <div id="accounts-content"></div>
+      <button class="btn btn-ghost" style="margin-top:8px;" onclick="openModal('addAccountModal')">+ Add account</button>
+    </div>
+
+    <!-- CASH FLOW -->
+    <div class="page" id="page-cashflow">
+      <div class="page-header">
+        <h1 class="page-title">Cash flow</h1>
+        <p class="page-sub">Monthly income, expenses & savings</p>
+      </div>
+      <div class="grid grid-4" id="cf-metrics" style="margin-bottom:24px;"></div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label">12-month overview</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#6fe4b4"></div>Income</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f76f6f"></div>Expenses</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Savings</div>
+        </div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="cfChart"></canvas></div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchCFTab('income',this)">Income</div>
+        <div class="tab" onclick="switchCFTab('expense',this)">Expenses</div>
+        <div class="tab" onclick="switchCFTab('savings',this)">Savings</div>
+      </div>
+      <div id="cf-income-content" class="tab-content active"></div>
+      <div id="cf-expense-content" class="tab-content"></div>
+      <div id="cf-savings-content" class="tab-content"></div>
+      <button class="btn btn-ghost" style="margin-top:12px;" onclick="openModal('addCFModal')">+ Add item</button>
+    </div>
+
+    <!-- GOALS -->
+    <div class="page" id="page-goals">
+      <div class="page-header">
+        <h1 class="page-title">Savings goals</h1>
+        <p class="page-sub">Track your progress towards each financial target</p>
+      </div>
+      <div id="goals-content"></div>
+      <button class="btn btn-ghost" style="margin-top:8px;" onclick="openModal('addGoalModal')">+ Add goal</button>
+    </div>
+
+    <!-- DEBT TRACKER -->
+    <div class="page" id="page-debt">
+      <div class="page-header">
+        <h1 class="page-title">Debt tracker</h1>
+        <p class="page-sub">Payoff strategies to become debt-free faster</p>
+      </div>
+      <div class="grid grid-4" id="debt-metrics" style="margin-bottom:24px;"></div>
+      <div class="debt-method-toggle">
+        <button class="debt-method-btn active" onclick="setDebtMethod('avalanche',this)">Avalanche</button>
+        <button class="debt-method-btn" onclick="setDebtMethod('snowball',this)">Snowball</button>
+      </div>
+      <div id="debt-method-desc" class="alert alert-info" style="margin-bottom:16px;">
+        <div class="alert-icon">ℹ</div>
+        <div class="alert-body"><strong>Avalanche method</strong><p>Pay off the highest interest rate debt first. Saves the most money overall.</p></div>
+      </div>
+      <div id="debt-content"></div>
+      <div class="card" style="margin-top:16px;">
+        <div class="section-label">Payoff order</div>
+        <div id="payoff-order-list"></div>
+      </div>
+    </div>
+
+    <!-- PENSION -->
+    <div class="page" id="page-pension">
+      <div class="page-header">
+        <h1 class="page-title">Pension & forecast</h1>
+        <p class="page-sub">Retirement projection and income forecast</p>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="section-label">Parameters</div>
+          <div id="pension-sliders"></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Projection</div>
+          <div id="pension-stats-box"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card">
+          <div class="section-label">Pot growth trajectory</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>With growth</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.2)"></div>Contributions only</div>
+          </div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="pensionChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Retirement income breakdown</div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="retIncomeChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="section-label">Income forecast by age</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="incomeForecastChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- IMPORT CSV -->
+    <div class="page" id="page-import">
+      <div class="page-header">
+        <h1 class="page-title">Import CSV</h1>
+        <p class="page-sub">Import transactions or account data from a CSV file</p>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:20px;">
+        <div class="alert-icon">ℹ</div>
+        <div class="alert-body"><strong>CSV format</strong><p>Expected columns: <code>name, type, amount, category</code>. Category should be <code>income</code>, <code>expense</code>, or <code>savings</code>. For accounts: <code>name, type, balance</code> where type is bank/isa/lisa/pension/premium/credit/mortgage/loan.</p></div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchImportTab('cashflow',this)">Cash flow items</div>
+        <div class="tab" onclick="switchImportTab('accounts',this)">Accounts</div>
+      </div>
+      <div id="import-cashflow" class="tab-content active">
+        <div class="csv-drop" id="csvDropCF" onclick="document.getElementById('csvFileCF').click()" ondragover="handleDrag(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleDropCF(event,this)">
+          <div style="font-size:36px;">↑</div>
+          <p>Click to upload or drag and drop a CSV file</p>
+          <p style="font-size:12px;color:var(--text3);margin-top:4px;">name, type, amount, category</p>
+        </div>
+        <input type="file" id="csvFileCF" accept=".csv" style="display:none" onchange="loadCSVCF(this)">
+        <div id="csvPreviewCF"></div>
+        <div id="csvImportBtnsCF"></div>
+      </div>
+      <div id="import-accounts" class="tab-content">
+        <div class="csv-drop" id="csvDropAcc" onclick="document.getElementById('csvFileAcc').click()" ondragover="handleDrag(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleDropAcc(event,this)">
+          <div style="font-size:36px;">↑</div>
+          <p>Click to upload or drag and drop a CSV file</p>
+          <p style="font-size:12px;color:var(--text3);margin-top:4px;">name, type, balance</p>
+        </div>
+        <input type="file" id="csvFileAcc" accept=".csv" style="display:none" onchange="loadCSVAcc(this)">
+        <div id="csvPreviewAcc"></div>
+        <div id="csvImportBtnsAcc"></div>
+      </div>
+      <div style="margin-top:32px;">
+        <div class="section-label">Export your data</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="exportCSV('accounts')">Export accounts CSV</button>
+          <button class="btn btn-ghost" onclick="exportCSV('cashflow')">Export cash flow CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<!-- Add Account -->
+<div class="modal-overlay" id="addAccountModal">
+  <div class="modal-box">
+    <div class="modal-title">Add account</div>
+    <div class="form-group"><label class="form-label">Account name</label><input class="form-input" id="newAccName" placeholder="e.g. Barclays Current Account"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-select" id="newAccType">
+          <option value="bank">Bank account</option>
+          <option value="isa">Stocks & Shares ISA</option>
+          <option value="lisa">Lifetime ISA</option>
+          <option value="pension">Pension</option>
+          <option value="premium">Premium bonds</option>
+          <option value="investment">Investment</option>
+          <option value="credit">Credit card</option>
+          <option value="mortgage">Mortgage</option>
+          <option value="loan">Personal loan</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Balance (£)</label><input class="form-input" id="newAccBalance" type="number" placeholder="e.g. 5000 or -210000"></div>
+    </div>
+    <div class="form-group" id="debtRateGroup" style="display:none;"><label class="form-label">Interest rate (% p.a.)</label><input class="form-input" id="newAccRate" type="number" step="0.1" placeholder="e.g. 19.9"></div>
+    <div class="form-group" id="debtPaymentGroup" style="display:none;"><label class="form-label">Min. monthly payment (£)</label><input class="form-input" id="newAccPayment" type="number" placeholder="e.g. 100"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addAccountModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addAccount()">Add account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add CF Item -->
+<div class="modal-overlay" id="addCFModal">
+  <div class="modal-box">
+    <div class="modal-title">Add cash flow item</div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="newCFName" placeholder="e.g. Salary, Groceries, ISA"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-select" id="newCFCat">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+          <option value="savings">Savings / investment</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Monthly amount (£)</label><input class="form-input" id="newCFAmount" type="number" placeholder="e.g. 3500"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addCFModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addCFItem()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Goal -->
+<div class="modal-overlay" id="addGoalModal">
+  <div class="modal-box">
+    <div class="modal-title">Add savings goal</div>
+    <div class="form-group"><label class="form-label">Goal name</label><input class="form-input" id="newGoalName" placeholder="e.g. Emergency fund, Holiday, House deposit"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Target amount (£)</label><input class="form-input" id="newGoalTarget" type="number" placeholder="e.g. 10000"></div>
+      <div class="form-group"><label class="form-label">Current saved (£)</label><input class="form-input" id="newGoalCurrent" type="number" placeholder="e.g. 2500"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Monthly saving (£)</label><input class="form-input" id="newGoalMonthly" type="number" placeholder="e.g. 300"></div>
+      <div class="form-group"><label class="form-label">Emoji icon</label><input class="form-input" id="newGoalIcon" placeholder="🏠" maxlength="2"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addGoalModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addGoal()">Add goal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const ICONS = { bank:'🏦', isa:'📈', lisa:'🏠', pension:'🎯', premium:'🎟', investment:'💹', credit:'💳', mortgage:'🏡', loan:'💰', investment:'📊' };
+const TYPE_LABELS = { bank:'Bank account', isa:'Stocks & Shares ISA', lisa:'Lifetime ISA', pension:'Pension', premium:'Premium Bonds', investment:'Investment', credit:'Credit card', mortgage:'Mortgage', loan:'Personal loan' };
+const DEBT_TYPES = ['credit','mortgage','loan'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function loadData() {
+  try {
+    const d = JSON.parse(localStorage.getItem('financeOS') || '{}');
+    return {
+      accounts: d.accounts || defaultAccounts(),
+      cashflow: d.cashflow || defaultCashflow(),
+      goals: d.goals || defaultGoals(),
+      pension: d.pension || defaultPension(),
+    };
+  } catch(e) { return { accounts: defaultAccounts(), cashflow: defaultCashflow(), goals: defaultGoals(), pension: defaultPension() }; }
+}
+function saveData() { localStorage.setItem('financeOS', JSON.stringify({ accounts: DATA.accounts, cashflow: DATA.cashflow, goals: DATA.goals, pension: DATA.pension })); }
+
+function defaultAccounts() { return [
+  {id:1,name:'Barclays Current',type:'bank',balance:4200,rate:0,minPayment:0},
+  {id:2,name:'Marcus Savings',type:'bank',balance:18500,rate:0,minPayment:0},
+  {id:3,name:'Vanguard S&S ISA',type:'isa',balance:32400,rate:0,minPayment:0},
+  {id:4,name:'Lifetime ISA',type:'lisa',balance:8600,rate:0,minPayment:0},
+  {id:5,name:'Nest Pension',type:'pension',balance:45000,rate:0,minPayment:0},
+  {id:6,name:'NS&I Premium Bonds',type:'premium',balance:10000,rate:0,minPayment:0},
+  {id:7,name:'Barclaycard',type:'credit',balance:-1800,rate:19.9,minPayment:50},
+  {id:8,name:'Halifax Mortgage',type:'mortgage',balance:-210000,rate:4.5,minPayment:1100},
+]; }
+function defaultCashflow() { return [
+  {id:1,name:'Salary',cat:'income',amount:4200},
+  {id:2,name:'Freelance',cat:'income',amount:600},
+  {id:3,name:'Mortgage payment',cat:'expense',amount:1100},
+  {id:4,name:'Groceries',cat:'expense',amount:350},
+  {id:5,name:'Utilities & bills',cat:'expense',amount:200},
+  {id:6,name:'Transport',cat:'expense',amount:150},
+  {id:7,name:'Subscriptions',cat:'expense',amount:80},
+  {id:8,name:'Eating out',cat:'expense',amount:200},
+  {id:9,name:'Clothing & misc',cat:'expense',amount:150},
+  {id:10,name:'Pension',cat:'savings',amount:500},
+  {id:11,name:'Vanguard ISA',cat:'savings',amount:300},
+  {id:12,name:'Emergency fund',cat:'savings',amount:200},
+]; }
+function defaultGoals() { return [
+  {id:1,name:'Emergency fund',target:15000,current:10000,monthly:200,icon:'🛡'},
+  {id:2,name:'Holiday fund',target:3000,current:900,monthly:150,icon:'✈️'},
+  {id:3,name:'New car',target:12000,current:2400,monthly:300,icon:'🚗'},
+]; }
+function defaultPension() { return { curAge:35, retAge:67, curPot:45000, monthly:500, employer:250, growth:6, statePension:11500, swr:4 }; }
+
+let DATA = loadData();
+let nextId = 100;
+let charts = {};
+let debtMethod = 'avalanche';
+let pendingCSVData = null;
+let pendingCSVType = null;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function fmt(n) { return '£' + Math.round(Math.abs(n)).toLocaleString(); }
+function fmtK(n) { n = Math.abs(n); return n >= 1000000 ? '£' + (n/1e6).toFixed(2) + 'm' : n >= 1000 ? '£' + (n/1000).toFixed(1) + 'k' : '£' + Math.round(n).toLocaleString(); }
+function totalAssets() { return DATA.accounts.filter(a=>a.balance>0).reduce((s,a)=>s+a.balance,0); }
+function totalDebts() { return DATA.accounts.filter(a=>a.balance<0).reduce((s,a)=>s+Math.abs(a.balance),0); }
+function netWorth() { return totalAssets() - totalDebts(); }
+function monthlyIncome() { return DATA.cashflow.filter(c=>c.cat==='income').reduce((s,c)=>s+c.amount,0); }
+function monthlyExpense() { return DATA.cashflow.filter(c=>c.cat==='expense').reduce((s,c)=>s+c.amount,0); }
+function monthlySavings() { return DATA.cashflow.filter(c=>c.cat==='savings').reduce((s,c)=>s+c.amount,0); }
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ISA allowance calculations
+const ISA_LIMIT = 20000;
+const LISA_LIMIT = 4000;
+const PENSION_LIMIT = 60000;
+function getISAContributions() { return DATA.cashflow.filter(c=>c.cat==='savings'&&(c.name.toLowerCase().includes('isa'))).reduce((s,c)=>s+c.amount*12,0); }
+function getLISABalance() { return DATA.accounts.filter(a=>a.type==='lisa').reduce((s,a)=>s+a.balance,0); }
+
+function buildISAAlerts() {
+  const isaContrib = getISAContributions();
+  const alerts = [];
+  const isaAccounts = DATA.accounts.filter(a=>a.type==='isa'||a.type==='lisa');
+  const totalISABalance = isaAccounts.reduce((s,a)=>s+a.balance,0);
+  if(isaContrib > ISA_LIMIT) alerts.push({ type:'danger', icon:'⚠', title:`ISA allowance exceeded!`, body:`You are contributing £${Math.round(isaContrib).toLocaleString()}/yr to ISAs, which exceeds the £20,000 annual limit.` });
+  else if(isaContrib > ISA_LIMIT * 0.8) alerts.push({ type:'warn', icon:'⚠', title:`ISA allowance running low`, body:`You have used £${Math.round(isaContrib).toLocaleString()} of your £20,000 annual ISA allowance. £${Math.round(ISA_LIMIT-isaContrib).toLocaleString()} remaining.` });
+  else if(isaContrib > 0) alerts.push({ type:'ok', icon:'✓', title:`ISA allowance on track`, body:`Using £${Math.round(isaContrib).toLocaleString()}/yr of your £20,000 ISA allowance. £${Math.round(ISA_LIMIT-isaContrib).toLocaleString()} remaining to shelter from tax.` });
+  if(getLISABalance() > 0) alerts.push({ type:'info', icon:'ℹ', title:`LISA — government bonus`, body:`Contributions up to £4,000/yr qualify for a 25% government bonus (max £1,000/yr). Only accessible at 60+ or for first home purchase.` });
+  return alerts;
+}
+
+function renderAlerts(containerId) {
+  const alerts = buildISAAlerts();
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = alerts.map(a => `<div class="alert alert-${a.type}" style="margin-bottom:10px;">
+    <div class="alert-icon">${a.icon}</div>
+    <div class="alert-body"><strong>${a.title}</strong><p>${a.body}</p></div>
+  </div>`).join('');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>{ if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active'); });
+  const renders = { overview:renderOverview, accounts:renderAccounts, cashflow:renderCashflow, goals:renderGoals, debt:renderDebt, pension:renderPension, import:()=>{} };
+  if(renders[name]) renders[name]();
+}
+
+// ─── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOverview() {
+  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  renderAlerts('isa-alerts');
+  const nw = netWorth();
+  const surplus = monthlyIncome() - monthlyExpense() - monthlySavings();
+  document.getElementById('overview-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Net worth</div><div class="metric-val ${nw>=0?'pos':''}">${fmtK(nw)}</div><div class="metric-sub">${nw>=0?'Assets exceed liabilities':'Liabilities exceed assets'}</div></div>
+    <div class="metric"><div class="metric-label">Total assets</div><div class="metric-val">${fmtK(totalAssets())}</div></div>
+    <div class="metric"><div class="metric-label">Total debts</div><div class="metric-val neg">${fmtK(totalDebts())}</div></div>
+    <div class="metric"><div class="metric-label">Monthly surplus</div><div class="metric-val ${surplus>=0?'pos':'neg'}">${surplus<0?'-':''}${fmt(Math.abs(surplus))}</div><div class="metric-sub">after expenses & savings</div></div>
+  `;
+  const months12 = MONTHS.slice(new Date().getMonth()+1).concat(MONTHS.slice(0,new Date().getMonth()+1));
+  const seed = nw - 11*800;
+  const nwData = months12.map((_,i) => Math.round(seed + i*800 + (Math.sin(i*1.3)*300)));
+  destroyChart('netWorthChart');
+  charts['netWorthChart'] = new Chart(document.getElementById('netWorthChart'), {
+    type:'line',
+    data:{ labels:months12, datasets:[{ label:'Net worth', data:nwData, borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.08)', fill:true, tension:0.4, pointRadius:3, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ ticks:{color:'#8b92a8',callback:v=>fmtK(v)}, grid:{color:'rgba(255,255,255,0.04)'} }, x:{ ticks:{color:'#8b92a8'}, grid:{display:false} } } }
+  });
+  const assetTypes = {};
+  DATA.accounts.filter(a=>a.balance>0).forEach(a=>{ const lbl=TYPE_LABELS[a.type]||a.type; assetTypes[lbl]=(assetTypes[lbl]||0)+a.balance; });
+  const COLORS = ['#4f8ef7','#6fe4b4','#f7c94f','#f76f6f','#b06ef7','#6ebef7','#f78c6e','#8b92a8'];
+  destroyChart('assetDonutChart');
+  charts['assetDonutChart'] = new Chart(document.getElementById('assetDonutChart'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(assetTypes), datasets:[{ data:Object.values(assetTypes), backgroundColor:COLORS, borderWidth:0, hoverOffset:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ display:true, position:'right', labels:{color:'#8b92a8',font:{size:11},boxWidth:10,padding:12} }, tooltip:{ callbacks:{ label:ctx=>' '+ctx.label+': '+fmtK(ctx.raw) } } } }
+  });
+  const inc=monthlyIncome(), exp=monthlyExpense(), sav=monthlySavings();
+  const cfLabels = months12;
+  destroyChart('cfOverviewChart');
+  charts['cfOverviewChart'] = new Chart(document.getElementById('cfOverviewChart'), {
+    type:'bar',
+    data:{ labels:cfLabels, datasets:[
+      { label:'Income', data:cfLabels.map((_,i)=>Math.round(inc+(Math.sin(i*0.7)*200))), backgroundColor:'rgba(111,228,180,0.7)' },
+      { label:'Expenses', data:cfLabels.map((_,i)=>Math.round(exp+(Math.sin(i*0.9)*150))), backgroundColor:'rgba(247,111,111,0.7)' },
+      { label:'Savings', data:cfLabels.map((_,i)=>Math.round(sav+(Math.sin(i*0.5)*50))), backgroundColor:'rgba(79,142,247,0.7)' },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{stacked:false,ticks:{color:'#8b92a8'},grid:{display:false}}, y:{ticks:{color:'#8b92a8',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'}} } }
+  });
+}
+
+// ─── ACCOUNTS ─────────────────────────────────────────────────────────────────
+function renderAccounts() {
+  renderAlerts('isa-alerts-accounts');
+  const assets = DATA.accounts.filter(a=>a.balance>=0);
+  const liabilities = DATA.accounts.filter(a=>a.balance<0);
+  const isaBalance = DATA.accounts.filter(a=>a.type==='isa'||a.type==='lisa').reduce((s,a)=>s+a.balance,0);
+  let html = '<div class="section-label">Assets</div>';
+  assets.forEach(a => {
+    let badge = '';
+    if(a.type==='isa') badge = `<span class="account-badge badge-info">ISA</span>`;
+    if(a.type==='lisa') badge = `<span class="account-badge badge-ok">LISA +25%</span>`;
+    if(a.type==='premium') badge = `<span class="account-badge badge-info">Tax-free</span>`;
+    html += `<div class="account-row">
+      <div class="account-icon asset-ic">${ICONS[a.type]||'💰'}</div>
+      <div class="account-info"><div class="account-name">${a.name}${badge}</div><div class="account-type">${TYPE_LABELS[a.type]||a.type}</div></div>
+      <div class="account-amount amount-pos">${fmt(a.balance)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteAccount(${a.id})" style="margin-left:8px;padding:4px 10px;font-size:11px;">✕</button>
+    </div>`;
+  });
+  html += '<div class="section-label">Liabilities</div>';
+  liabilities.forEach(a => {
+    const rate = a.rate ? `${a.rate}% p.a.` : '';
+    html += `<div class="account-row">
+      <div class="account-icon debt-ic">${ICONS[a.type]||'💰'}</div>
+      <div class="account-info"><div class="account-name">${a.name}${rate ? `<span class="account-badge badge-warn">${rate}</span>` : ''}</div><div class="account-type">${TYPE_LABELS[a.type]||a.type}</div></div>
+      <div class="account-amount amount-neg">-${fmt(Math.abs(a.balance))}</div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteAccount(${a.id})" style="margin-left:8px;padding:4px 10px;font-size:11px;">✕</button>
+    </div>`;
+  });
+  document.getElementById('accounts-content').innerHTML = html;
+  document.getElementById('newAccType').addEventListener('change', toggleDebtFields);
+}
+
+function toggleDebtFields() {
+  const t = document.getElementById('newAccType').value;
+  const isDebt = DEBT_TYPES.includes(t);
+  document.getElementById('debtRateGroup').style.display = isDebt ? '' : 'none';
+  document.getElementById('debtPaymentGroup').style.display = isDebt ? '' : 'none';
+}
+
+function addAccount() {
+  const name = document.getElementById('newAccName').value.trim();
+  const type = document.getElementById('newAccType').value;
+  const balance = parseFloat(document.getElementById('newAccBalance').value) || 0;
+  const rate = parseFloat(document.getElementById('newAccRate').value) || 0;
+  const minPayment = parseFloat(document.getElementById('newAccPayment').value) || 0;
+  if(!name) return;
+  DATA.accounts.push({id:nextId++,name,type,balance,rate,minPayment});
+  saveData();
+  closeModal('addAccountModal');
+  document.getElementById('newAccName').value=''; document.getElementById('newAccBalance').value=''; document.getElementById('newAccRate').value=''; document.getElementById('newAccPayment').value='';
+  renderAccounts();
+}
+
+function deleteAccount(id) {
+  if(!confirm('Remove this account?')) return;
+  DATA.accounts = DATA.accounts.filter(a=>a.id!==id);
+  saveData(); renderAccounts();
+}
+
+// ─── CASH FLOW ────────────────────────────────────────────────────────────────
+let cfTab = 'income';
+function switchCFTab(tab, el) {
+  cfTab = tab;
+  document.querySelectorAll('#page-cashflow .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#page-cashflow .tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('cf-'+tab+'-content').classList.add('active');
+}
+
+function renderCFList(cat) {
+  const items = DATA.cashflow.filter(c=>c.cat===cat);
+  const total = items.reduce((s,c)=>s+c.amount,0);
+  let html = '';
+  items.forEach(c => {
+    html += `<div class="cf-row"><span class="name">${c.name}</span><div style="display:flex;align-items:center;gap:8px;">
+      <span class="cf-tag ${cat}">${fmt(c.amount)}/mo</span>
+      <button class="cf-delete" onclick="deleteCFItem(${c.id})">✕</button>
+    </div></div>`;
+  });
+  html += `<div class="cf-row" style="margin-top:4px;"><strong style="color:var(--text);">Total</strong><strong style="font-family:var(--mono);color:var(--text);">${fmt(total)}/mo</strong></div>`;
+  document.getElementById('cf-'+cat+'-content').innerHTML = `<div class="card" style="margin-bottom:8px;">${html}</div>`;
+}
+
+function renderCashflow() {
+  const inc=monthlyIncome(), exp=monthlyExpense(), sav=monthlySavings(), surplus=inc-exp-sav;
+  document.getElementById('cf-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Monthly income</div><div class="metric-val pos">${fmt(inc)}</div></div>
+    <div class="metric"><div class="metric-label">Monthly expenses</div><div class="metric-val neg">${fmt(exp)}</div></div>
+    <div class="metric"><div class="metric-label">Saved & invested</div><div class="metric-val">${fmt(sav)}</div><div class="metric-sub">${Math.round(sav/inc*100)}% of income</div></div>
+    <div class="metric"><div class="metric-label">Surplus</div><div class="metric-val ${surplus>=0?'pos':'neg'}">${surplus<0?'-':''}${fmt(Math.abs(surplus))}</div></div>
+  `;
+  const months12 = MONTHS.slice(new Date().getMonth()+1).concat(MONTHS.slice(0,new Date().getMonth()+1));
+  destroyChart('cfChart');
+  charts['cfChart'] = new Chart(document.getElementById('cfChart'), {
+    type:'bar',
+    data:{ labels:months12, datasets:[
+      { label:'Income', data:months12.map((_,i)=>Math.round(inc+(Math.sin(i*0.7)*200))), backgroundColor:'rgba(111,228,180,0.7)' },
+      { label:'Expenses', data:months12.map((_,i)=>Math.round(exp+(Math.sin(i*0.9)*150))), backgroundColor:'rgba(247,111,111,0.7)' },
+      { label:'Savings', data:months12.map((_,i)=>Math.round(sav+(Math.sin(i*0.5)*50))), backgroundColor:'rgba(79,142,247,0.7)' },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b92a8'},grid:{display:false}}, y:{ticks:{color:'#8b92a8',callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'}} } }
+  });
+  ['income','expense','savings'].forEach(renderCFList);
+}
+
+function addCFItem() {
+  const name = document.getElementById('newCFName').value.trim();
+  const cat = document.getElementById('newCFCat').value;
+  const amount = parseFloat(document.getElementById('newCFAmount').value)||0;
+  if(!name||!amount) return;
+  DATA.cashflow.push({id:nextId++,name,cat,amount});
+  saveData(); closeModal('addCFModal');
+  document.getElementById('newCFName').value=''; document.getElementById('newCFAmount').value='';
+  renderCashflow();
+}
+
+function deleteCFItem(id) {
+  DATA.cashflow = DATA.cashflow.filter(c=>c.id!==id);
+  saveData(); renderCashflow();
+}
+
+// ─── GOALS ────────────────────────────────────────────────────────────────────
+function renderGoals() {
+  if(!DATA.goals.length) { document.getElementById('goals-content').innerHTML='<p style="color:var(--text3);padding:20px 0;">No goals yet. Add your first savings goal.</p>'; return; }
+  let html = '';
+  DATA.goals.forEach(g => {
+    const pct = Math.min(100, Math.round(g.current/g.target*100));
+    const remaining = Math.max(0, g.target - g.current);
+    const months = g.monthly > 0 ? Math.ceil(remaining/g.monthly) : null;
+    const eta = months ? new Date(Date.now() + months*30*24*3600*1000).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : 'No monthly saving set';
+    const fillColor = pct>=100 ? '#6fe4b4' : pct>60 ? '#4f8ef7' : pct>30 ? '#f7c94f' : '#f76f6f';
+    html += `<div class="goal-card">
+      <div class="goal-header">
+        <div><div class="goal-name">${g.icon||'🎯'} ${g.name}</div><div class="goal-target" style="margin-top:3px;">Target: ${fmt(g.target)} · ${fmt(g.monthly)}/mo</div></div>
+        <div class="goal-actions">
+          <button class="btn btn-ghost btn-sm" onclick="depositGoal(${g.id})">+ Deposit</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteGoal(${g.id})" style="color:var(--danger);">✕</button>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+          <span style="font-family:var(--mono);color:var(--text);">${fmt(g.current)} saved</span>
+          <span style="color:var(--text2);">${pct}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${fillColor};"></div></div>
+        <div class="progress-info"><span>${fmt(remaining)} to go</span><span>Est. ${eta}</span></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('goals-content').innerHTML = html;
+}
+
+function addGoal() {
+  const name = document.getElementById('newGoalName').value.trim();
+  const target = parseFloat(document.getElementById('newGoalTarget').value)||0;
+  const current = parseFloat(document.getElementById('newGoalCurrent').value)||0;
+  const monthly = parseFloat(document.getElementById('newGoalMonthly').value)||0;
+  const icon = document.getElementById('newGoalIcon').value || '🎯';
+  if(!name||!target) return;
+  DATA.goals.push({id:nextId++,name,target,current,monthly,icon});
+  saveData(); closeModal('addGoalModal');
+  ['newGoalName','newGoalTarget','newGoalCurrent','newGoalMonthly','newGoalIcon'].forEach(id=>document.getElementById(id).value='');
+  renderGoals();
+}
+
+function deleteGoal(id) {
+  if(!confirm('Remove this goal?')) return;
+  DATA.goals = DATA.goals.filter(g=>g.id!==id);
+  saveData(); renderGoals();
+}
+
+function depositGoal(id) {
+  const amt = parseFloat(prompt('How much have you saved towards this goal? (£)') || '0');
+  if(!amt) return;
+  const g = DATA.goals.find(g=>g.id===id);
+  if(g) { g.current = Math.min(g.target, g.current+amt); saveData(); renderGoals(); }
+}
+
+// ─── DEBT TRACKER ─────────────────────────────────────────────────────────────
+function setDebtMethod(method, btn) {
+  debtMethod = method;
+  document.querySelectorAll('.debt-method-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const descs = {
+    avalanche: { type:'info', title:'Avalanche method', body:'Pay off the highest interest rate debt first. Saves the most money in interest overall.' },
+    snowball: { type:'ok', title:'Snowball method', body:'Pay off the smallest balance first. Builds momentum and motivation through quick wins.' }
+  };
+  const d = descs[method];
+  document.getElementById('debt-method-desc').className = `alert alert-${d.type}`;
+  document.getElementById('debt-method-desc').innerHTML = `<div class="alert-icon">ℹ</div><div class="alert-body"><strong>${d.title}</strong><p>${d.body}</p></div>`;
+  renderDebt();
+}
+
+function calcPayoffMonths(balance, rate, payment) {
+  if(balance<=0) return 0;
+  if(payment<=0) return Infinity;
+  const monthlyRate = rate/100/12;
+  if(monthlyRate===0) return Math.ceil(balance/payment);
+  let remaining = balance;
+  let months = 0;
+  while(remaining > 0 && months < 1200) {
+    remaining = remaining*(1+monthlyRate) - payment;
+    months++;
+  }
+  return months;
+}
+
+function calcTotalInterest(balance, rate, payment) {
+  if(balance<=0||rate<=0) return 0;
+  const monthlyRate = rate/100/12;
+  let remaining = balance;
+  let totalPaid = 0;
+  let months = 0;
+  while(remaining > 0 && months < 1200) {
+    remaining = remaining*(1+monthlyRate) - payment;
+    totalPaid += payment;
+    months++;
+  }
+  return Math.max(0, totalPaid - balance);
+}
+
+function renderDebt() {
+  const debts = DATA.accounts.filter(a=>a.balance<0&&a.type!=='mortgage'||a.balance<0&&a.rate>0).filter(a=>a.balance<0);
+  const totalDebt = debts.reduce((s,a)=>s+Math.abs(a.balance),0);
+  const totalMinPayment = debts.reduce((s,a)=>s+(a.minPayment||0),0);
+  document.getElementById('debt-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total debt</div><div class="metric-val neg">${fmtK(totalDebt)}</div></div>
+    <div class="metric"><div class="metric-label">Accounts</div><div class="metric-val">${debts.length}</div></div>
+    <div class="metric"><div class="metric-label">Min. payments</div><div class="metric-val">${fmt(totalMinPayment)}/mo</div></div>
+    <div class="metric"><div class="metric-label">Avg. rate</div><div class="metric-val warn">${debts.length?((debts.reduce((s,a)=>s+(a.rate||0),0)/debts.length).toFixed(1))+'%':'—'}</div></div>
+  `;
+  if(!debts.length) { document.getElementById('debt-content').innerHTML='<p style="color:var(--text3);padding:20px 0;">No debts found. Add accounts with negative balances to track them here.</p>'; document.getElementById('payoff-order-list').innerHTML=''; return; }
+  const sorted = [...debts].sort((a,b) => debtMethod==='avalanche' ? (b.rate||0)-(a.rate||0) : Math.abs(a.balance)-Math.abs(b.balance));
+  let html = '';
+  debts.forEach(a => {
+    const bal = Math.abs(a.balance);
+    const months = a.minPayment ? calcPayoffMonths(bal, a.rate||0, a.minPayment) : null;
+    const interest = a.minPayment&&a.rate ? calcTotalInterest(bal, a.rate, a.minPayment) : null;
+    const pct = Math.min(100, Math.round((a.minPayment||0)/bal*1200));
+    html += `<div class="debt-card">
+      <div class="debt-header"><div class="debt-title">${ICONS[a.type]||'💰'} ${a.name}</div><span class="account-badge badge-warn">${a.rate||0}% APR</span></div>
+      <div class="debt-stats">
+        <div class="debt-stat"><div class="val">${fmtK(bal)}</div><div class="lbl">Outstanding</div></div>
+        <div class="debt-stat"><div class="val">${a.minPayment ? fmt(a.minPayment)+'/mo' : '—'}</div><div class="lbl">Min. payment</div></div>
+        <div class="debt-stat"><div class="val">${months&&months<1200 ? months+'mo' : '—'}</div><div class="lbl">To clear</div></div>
+      </div>
+      ${interest ? `<div style="margin-top:12px;font-size:13px;color:var(--text3);">Total interest at minimum payments: <span style="color:var(--danger);font-family:var(--mono);">${fmtK(interest)}</span></div>` : ''}
+    </div>`;
+  });
+  document.getElementById('debt-content').innerHTML = html;
+  let orderHTML = '';
+  sorted.forEach((a,i) => {
+    const bal = Math.abs(a.balance);
+    const months = a.minPayment ? calcPayoffMonths(bal, a.rate||0, a.minPayment) : null;
+    orderHTML += `<div class="payoff-step">
+      <div class="step-num">${i+1}</div>
+      <div class="step-info"><div class="step-name">${a.name}</div><div class="step-detail">${debtMethod==='avalanche'?`${a.rate||0}% APR — highest rate first`:`${fmtK(bal)} — smallest balance first`}</div></div>
+      <div class="step-months">${months&&months<1200?months+'mo':'—'}</div>
+    </div>`;
+  });
+  document.getElementById('payoff-order-list').innerHTML = `<div class="payoff-order">${orderHTML}</div>`;
+}
+
+// ─── PENSION ──────────────────────────────────────────────────────────────────
+const PENSION_SLIDERS = [
+  {id:'curAge',label:'Current age',min:18,max:65,step:1,format:v=>v},
+  {id:'retAge',label:'Retirement age',min:55,max:80,step:1,format:v=>v},
+  {id:'curPot',label:'Current pot (£)',min:0,max:500000,step:1000,format:v=>fmtK(v)},
+  {id:'monthly',label:'Your monthly contribution (£)',min:0,max:3000,step:50,format:v=>fmt(v)},
+  {id:'employer',label:'Employer contribution (£/mo)',min:0,max:2000,step:50,format:v=>fmt(v)},
+  {id:'growth',label:'Annual growth rate (%)',min:2,max:12,step:0.5,format:v=>v+'%'},
+  {id:'statePension',label:'State pension (£/yr)',min:0,max:12000,step:100,format:v=>fmtK(v)},
+  {id:'swr',label:'Safe withdrawal rate (%)',min:2,max:6,step:0.5,format:v=>v+'%'},
+];
+
+function renderPension() {
+  const p = DATA.pension;
+  document.getElementById('pension-sliders').innerHTML = PENSION_SLIDERS.map(s=>`
+    <div class="slider-block">
+      <div class="slider-label">${s.label}</div>
+      <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${p[s.id]}" oninput="updatePensionSlider('${s.id}',this.value)">
+      <div class="slider-val" id="pval-${s.id}">${s.format(p[s.id])}</div>
+    </div>`).join('');
+  updatePensionDisplay();
+}
+
+function updatePensionSlider(key, val) {
+  DATA.pension[key] = parseFloat(val);
+  const s = PENSION_SLIDERS.find(s=>s.id===key);
+  document.getElementById('pval-'+key).textContent = s.format(parseFloat(val));
+  saveData();
+  updatePensionDisplay();
+}
+
+function calcPensionPot(p) {
+  const years = Math.max(0, p.retAge - p.curAge);
+  const monthlyR = p.growth/100/12;
+  const totalMonthly = p.monthly + p.employer;
+  let pot = p.curPot;
+  for(let m=0; m<years*12; m++) pot = pot*(1+monthlyR)+totalMonthly;
+  return pot;
+}
+
+function updatePensionDisplay() {
+  const p = DATA.pension;
+  const pot = calcPensionPot(p);
+  const years = Math.max(0, p.retAge - p.curAge);
+  const drawdown = pot*(p.swr/100);
+  const total = drawdown + p.statePension;
+  const lifeExpectancy = 87;
+  const retYears = lifeExpectancy - p.retAge;
+  document.getElementById('pension-stats-box').innerHTML = `
+    <div class="pension-stat-row"><span class="lbl">Years to retirement</span><span class="val">${years}</span></div>
+    <div class="pension-stat-row"><span class="lbl">Projected pot at ${p.retAge}</span><span class="val highlight">${fmtK(pot)}</span></div>
+    <div class="pension-stat-row"><span class="lbl">Annual drawdown (${p.swr}% SWR)</span><span class="val">${fmtK(drawdown)}</span></div>
+    <div class="pension-stat-row"><span class="lbl">State pension</span><span class="val">${fmtK(p.statePension)}</span></div>
+    <div class="pension-stat-row"><span class="lbl">Total annual income</span><span class="val highlight">${fmtK(total)}</span></div>
+    <div class="pension-stat-row"><span class="lbl">Monthly income</span><span class="val">${fmtK(total/12)}</span></div>
+    <div class="pension-stat-row"><span class="lbl">Pot lasts (to age ~${lifeExpectancy})</span><span class="val">${retYears} years</span></div>
+  `;
+  const labels=[], potData=[], contribData=[];
+  for(let age=p.curAge; age<=p.retAge; age++) {
+    labels.push(age);
+    const yrs=age-p.curAge, monthlyR=p.growth/100/12, tm=p.monthly+p.employer;
+    let pv=p.curPot;
+    for(let m=0;m<yrs*12;m++) pv=pv*(1+monthlyR)+tm;
+    potData.push(Math.round(pv));
+    contribData.push(Math.round(p.curPot+tm*yrs*12));
+  }
+  destroyChart('pensionChart');
+  charts['pensionChart'] = new Chart(document.getElementById('pensionChart'), {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'With growth', data:potData, borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.08)', fill:true, tension:0.3, borderWidth:2 },
+      { label:'Contributions only', data:contribData, borderColor:'rgba(255,255,255,0.2)', fill:false, tension:0.3, pointRadius:0, borderDash:[5,5] }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ticks:{color:'#8b92a8',callback:v=>fmtK(v)},grid:{color:'rgba(255,255,255,0.04)'}}, x:{ticks:{color:'#8b92a8'},grid:{display:false}} } }
+  });
+  destroyChart('retIncomeChart');
+  charts['retIncomeChart'] = new Chart(document.getElementById('retIncomeChart'), {
+    type:'doughnut',
+    data:{ labels:['Pension drawdown','State pension'], datasets:[{ data:[Math.round(drawdown),Math.round(p.statePension)], backgroundColor:['#4f8ef7','#6fe4b4'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{ legend:{display:true,position:'bottom',labels:{color:'#8b92a8',font:{size:12},boxWidth:10,padding:14}}, tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtK(ctx.raw)+'/yr'}} } }
+  });
+  const forecastAges=[], forecastIncome=[];
+  for(let age=p.retAge; age<=90; age+=5) {
+    forecastAges.push('Age '+age);
+    const potAtAge = pot * Math.pow(1-(p.swr/100), age-p.retAge);
+    forecastIncome.push(Math.max(0, Math.round(Math.max(potAtAge,0)*(p.swr/100) + p.statePension)));
+  }
+  destroyChart('incomeForecastChart');
+  charts['incomeForecastChart'] = new Chart(document.getElementById('incomeForecastChart'), {
+    type:'bar',
+    data:{ labels:forecastAges, datasets:[
+      { label:'Annual income', data:forecastIncome, backgroundColor:'rgba(79,142,247,0.7)', borderRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ticks:{color:'#8b92a8',callback:v=>fmtK(v)},grid:{color:'rgba(255,255,255,0.04)'}}, x:{ticks:{color:'#8b92a8'},grid:{display:false}} } }
+  });
+}
+
+// ─── CSV IMPORT ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const obj = {};
+    headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+
+function handleDrag(e,el) { e.preventDefault(); el.classList.add('drag'); }
+function handleDragLeave(e,el) { el.classList.remove('drag'); }
+function handleDropCF(e, el) { e.preventDefault(); el.classList.remove('drag'); if(e.dataTransfer.files[0]) loadCSVFile(e.dataTransfer.files[0], 'cashflow'); }
+function handleDropAcc(e, el) { e.preventDefault(); el.classList.remove('drag'); if(e.dataTransfer.files[0]) loadCSVFile(e.dataTransfer.files[0], 'accounts'); }
+function loadCSVCF(input) { if(input.files[0]) loadCSVFile(input.files[0],'cashflow'); }
+function loadCSVAcc(input) { if(input.files[0]) loadCSVFile(input.files[0],'accounts'); }
+
+function loadCSVFile(file, type) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = parseCSV(e.target.result);
+    pendingCSVData = rows; pendingCSVType = type;
+    const previewId = type==='cashflow' ? 'csvPreviewCF' : 'csvPreviewAcc';
+    const btnsId = type==='cashflow' ? 'csvImportBtnsCF' : 'csvImportBtnsAcc';
+    const keys = Object.keys(rows[0]||{});
+    let html = `<div class="csv-preview"><table><thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead><tbody>`;
+    rows.slice(0,10).forEach(row => { html += `<tr>${keys.map(k=>`<td>${row[k]||''}</td>`).join('')}</tr>`; });
+    html += `</tbody></table></div><p style="font-size:12px;color:var(--text3);margin-top:8px;">${rows.length} rows found${rows.length>10?' (showing first 10)':''}</p>`;
+    document.getElementById(previewId).innerHTML = html;
+    document.getElementById(btnsId).innerHTML = `<div class="btn-row"><button class="btn btn-primary" onclick="importCSV('${type}')">Import ${rows.length} items</button><button class="btn btn-ghost" onclick="clearCSV('${type}')">Clear</button></div>`;
+  };
+  reader.readAsText(file);
+}
+
+function importCSV(type) {
+  if(!pendingCSVData) return;
+  let imported = 0;
+  if(type==='cashflow') {
+    pendingCSVData.forEach(row => {
+      const name=row.name||row.description||row.item||'';
+      const cat=(row.category||row.cat||'expense').toLowerCase();
+      const amount=parseFloat(row.amount||row.monthly||0);
+      if(name&&amount&&['income','expense','savings'].includes(cat)) {
+        DATA.cashflow.push({id:nextId++,name,cat,amount:Math.abs(amount)});
+        imported++;
+      }
+    });
+  } else {
+    pendingCSVData.forEach(row => {
+      const name=row.name||row.account||'';
+      const type=row.type||'bank';
+      const balance=parseFloat(row.balance||0);
+      const rate=parseFloat(row.rate||row.interest||0);
+      const minPayment=parseFloat(row.minpayment||row.payment||0);
+      if(name) { DATA.accounts.push({id:nextId++,name,type,balance,rate,minPayment}); imported++; }
+    });
+  }
+  saveData();
+  alert(`✓ Imported ${imported} items successfully.`);
+  pendingCSVData=null; pendingCSVType=null;
+  clearCSV(type);
+}
+
+function clearCSV(type) {
+  const previewId = type==='cashflow' ? 'csvPreviewCF' : 'csvPreviewAcc';
+  const btnsId = type==='cashflow' ? 'csvImportBtnsCF' : 'csvImportBtnsAcc';
+  document.getElementById(previewId).innerHTML=''; document.getElementById(btnsId).innerHTML='';
+  const fileId = type==='cashflow' ? 'csvFileCF' : 'csvFileAcc';
+  document.getElementById(fileId).value='';
+}
+
+function exportCSV(type) {
+  let csv='', filename='';
+  if(type==='accounts') {
+    csv = 'name,type,balance,rate,minPayment\n' + DATA.accounts.map(a=>`"${a.name}",${a.type},${a.balance},${a.rate||0},${a.minPayment||0}`).join('\n');
+    filename = 'accounts.csv';
+  } else {
+    csv = 'name,category,amount\n' + DATA.cashflow.map(c=>`"${c.name}",${c.cat},${c.amount}`).join('\n');
+    filename = 'cashflow.csv';
+  }
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename; a.click();
+}
+
+function switchImportTab(tab, el) {
+  document.querySelectorAll('#page-import .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#page-import .tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('import-'+tab).classList.add('active');
+}
+
+// ─── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+document.getElementById('newAccType').addEventListener('change', toggleDebtFields);
+
+// ─── KEYBOARD ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderOverview();
+</script>
+</body>
+</html>
